@@ -1305,13 +1305,35 @@ async def mail10p(ctx, arg = None):
                 p = pymailtm.MailTm()
                 await ctx.send("đang thu thập các mail gửi đến...")
                 path = member_data[str(ctx.message.author.id)]['email']
-                x = pymailtm.Account("62f6284bf2b800e19b01940a", "e6wcaqgsisw4@arxxwalls.com", "V798DFSM")
+                x = pymailtm.Account(path['id'], path["address"], path["password"])
                 r = requests.get("{}/messages?page={}".format(p.api_address, "1"),
-                         headers=x.auth_headers).text
-                s = requests.get("{}/messages/62f629b9e7cd613a29dce4ac/download".format("1"),
-                         headers=x.auth_headers).text
+                         headers=x.auth_headers)
                 user = await bot.fetch_user(ctx.message.author.id)
-                await user.send(f"đây là các tin nhắn đã thu thập được:\n{r}")
+                await user.send(f"Đã nhận được {len(r.json()['hydra:member'])} mail gửi đến tài khoản")
+                message = {}
+                num_email = 1
+                for i in r.json()['hydra:member']:
+                    get = requests.get(f"{p.api_address}/messages/{i['id']}", headers=x.auth_headers)
+                    data = json.loads(get.text)
+                    message['from'] = data['from']['address']
+                    for k in data['to']:
+                        message['to'] = []
+                        message['to'].append(k['address'])
+                    message['subject'] = data['subject']
+                    message['body'] = data['text']
+                    if data['hasAttachments'] == True:
+                        num_attachments = []
+                        backslash = r'\"'
+                        for i in data['attachments']:
+                            link = []
+                            link.append(str(p.api_address) + str(i['downloadUrl']).strip(backslash))
+                        message_send = f"email thứ {num_email}:\nGửi từ: {str(message['from'])}\nGửi đến: {str(message['to']).replace('[', '').replace(']', '')}\nTiêu đề: {str(message['subject'])}\nNội dung: {str(message['body'])}\nTệp đính kèm trong mail\n"
+                        for ls in link:
+                            message_send += f"{ls}\n"
+                        await user.send(f"{message_send}")
+                    else:
+                        await user.send(f"email thứ {num_email}:\nGửi từ: {str(message['from'])}\nGửi đến: {str(message['to']).replace('[', '').replace(']', '')}\nTiêu đề: {str(message['subject'])}\nNội dung: {str(message['body'])}")
+                    num_email += 1
     except Exception as e:
         print(e)
         await ctx.send(f"đã xảy ra lỗi: {e}\nVui lòng thử lại sau")
@@ -1373,5 +1395,5 @@ async def update(user, change, mode):
 def save_member_data(data):
     with open("data.json", 'w') as f:
         json.dump(data, f)
-bot.run('OTkwOTA3MDUxNDYwOTIzNDAz.Gxujsi.pGxadbmHWWDOKn1qntrYqCHkhYguxbl8-sQB-o')
+bot.run('')
 #credit: Duc Anh
