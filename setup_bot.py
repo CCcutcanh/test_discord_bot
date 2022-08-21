@@ -4,7 +4,6 @@ from socket import timeout
 import discord
 from discord.ext import commands, tasks
 import json 
-import os
 import requests
 import pymailtm
 from youtube_search import YoutubeSearch
@@ -29,7 +28,7 @@ def get_prefix():
     return prefix
 intents = discord.Intents.default()
 intents.members = True
-bot = commands.Bot(command_prefix=(command_prefix), intents = intents)
+bot = commands.Bot(command_prefix='?', intents = intents)
 bot.remove_command("help")
 @bot.event
 async def on_guild_join(guild):
@@ -41,6 +40,35 @@ async def on_guild_join(guild):
 @bot.event
 async def on_ready():
     print(f'[LOGIN] login successful into {bot.user}')
+@bot.event
+async def on_message(message):
+    data = await get_bank_data()
+    if 'noitu' in data[str(message.guild.id)]:
+        word = []
+        if str(message.channel.id) == data[str(message.guild.id)]['noitu']['channel'] and str(message.author.id) != str(bot.user.id):
+            r = requests.get('https://raw.githubusercontent.com/undertheseanlp/dictionary/master/dictionaries/hongocduc/words.txt').text.split('\n')
+            try:
+                for i in r:
+                    try:
+                        if len(json.loads(i)['text'].split(" ")) == 2:
+                            word.append(str(json.loads(i)['text']))
+                    except:
+                        continue
+            except Exception as e:
+                print(e)
+            if len(str(message.content.lower()).split(' ')) == 2 and str(message.author.id) != str(bot.user.id):
+                if message.content.lower() not in word:
+                    await message.add_reaction("✅")
+                    await message.channel.send(f'Từ `{message.content.lower()}` không tồn tại trong từ điển của bot')
+                elif message.content.lower() in data[str(message.guild.id)]['noitu']['word']:
+                    await message.channel.send(f'Từ `{message.content.lower()}` đã được nối từ trước đó')
+                else:
+                    data[str(message.guild.id)]['noitu']['word'].append(str(message.content.lower()))
+                    save_member_data(data)
+                    await message.add_reaction("✅")
+            else:
+                await message.channel.send(f'Chỉ được nối từ có 2 tiếng.')  
+    await bot.process_commands(message)
 @bot.group(invoke_without_command=True)
 async def help(ctx, arg = None):
     help_prefix = get_prefix()[str(ctx.message.guild.id)]['prefix']
@@ -704,26 +732,18 @@ async def dhbc(ctx):
         print(e)
         await ctx.send('hiện tại lệnh bạn đang sử dụng đã gặp lỗi, hãy thử lại sau. xin lỗi vì sự cố này')
 @bot.command()
-async def noitu(ctx):
-    await ctx.send('đã bắt đầu, hãy mở đầu trò chơi với một từ đầu tiên')
-    while True:
-        def check(m):
-            return m.author.id == ctx.author.id
-        message = await bot.wait_for('message', check=check)
-        url_noitu = 'https://goatbot.tk/api/wordlink?text='
-        full_url_noitu = url_noitu + str(message.content)
-        get_noitu = requests.get(full_url_noitu)
-        data_noitu = get_noitu.text
-        json_noitu = json.loads(data_noitu)
-        word_noitu = json_noitu['data']
-        if "lose" in word_noitu:
-            await ctx.send('bạn thắng rồi:((')
-            break
-        if message.content == "quit":
-            await ctx.send('bạn thua rồiiiii:)')
-            break
-        else:
-            await ctx.send(word_noitu)
+async def noitu(ctx, arg = None):
+    data = await get_bank_data()
+    if arg == None:
+        await ctx.send(f'game nối từ tiếng việt\n{data[str(ctx.message.guild.id)]["prefix"]}noitu [start/reset]\n')
+    elif arg == 'reset':
+        pass
+    elif arg == 'start':
+        data[str(ctx.message.guild.id)]['noitu'] = {}
+        data[str(ctx.message.guild.id)]['noitu']['word'] = []
+        data[str(ctx.message.guild.id)]['noitu']['channel'] = str(ctx.message.channel.id)
+        await save_member_data(data)
+        await ctx.send(f"đã bắt đầu trò chơi hãy bắt đầu bằng một từ bất kì")
 @bot.command()
 async def taoanhdep(ctx):
     send = await ctx.send('reply tin nhắn này và nhập để tạo ảnh theo mẫu sau:\n<id nhân vật> | <chữ nền> | <chữ kí>')
@@ -1352,13 +1372,13 @@ async def open_account(user):
         users[str(user)]["Bank"] = 0
         users[str(user)]["pc"] = 0
 
-    with open("data.json", 'w') as f:
+    with open("test.json", 'w') as f:
         json.dump(users, f)
     return True
 
 
 async def get_bank_data():
-    with open("data.json", 'r') as f:
+    with open("test.json", 'r') as f:
         users = json.load(f)
     return users
 async def update(user, change, mode):
@@ -1393,7 +1413,7 @@ async def update(user, change, mode):
     else:
         print('error')
 def save_member_data(data):
-    with open("data.json", 'w') as f:
+    with open("test.json", 'w') as f:
         json.dump(data, f)
 bot.run('')
 #credit: Duc Anh
