@@ -1,6 +1,8 @@
 from asyncio import exceptions
+from dis import dis
 import re
 from socket import timeout
+from sre_constants import SUCCESS
 import discord
 from discord.ext import commands, tasks
 import json 
@@ -45,6 +47,7 @@ async def on_message(message):
     data = await get_bank_data()
     if 'noitu' in data[str(message.guild.id)]:
         word = []
+        success = ''
         if str(message.channel.id) == data[str(message.guild.id)]['noitu']['channel'] and str(message.author.id) != str(bot.user.id):
             r = requests.get('https://raw.githubusercontent.com/undertheseanlp/dictionary/master/dictionaries/hongocduc/words.txt').text.split('\n')
             try:
@@ -58,16 +61,30 @@ async def on_message(message):
                 print(e)
             if len(str(message.content.lower()).split(' ')) == 2 and str(message.author.id) != str(bot.user.id):
                 if message.content.lower() not in word:
-                    await message.add_reaction("✅")
+                    await message.add_reaction("❎")
                     await message.channel.send(f'Từ `{message.content.lower()}` không tồn tại trong từ điển của bot')
                 elif message.content.lower() in data[str(message.guild.id)]['noitu']['word']:
                     await message.channel.send(f'Từ `{message.content.lower()}` đã được nối từ trước đó')
-                else:
-                    data[str(message.guild.id)]['noitu']['word'].append(str(message.content.lower()))
+                try:
+                    if data[str(message.guild.id)]['noitu']['pre_word'] != str(message.content.lower()).split(' ')[0]:
+                        await message.channel.send(f"từ của bạn phải bắt đầu bằng chữ `{data[str(message.guild.id)]['noitu']['pre_word']}`")
+                        success = False
+                    if data[str(message.guild.id)]['noitu']['pre_player'] == str(message.author.id):
+                        await message.channel.send(f"Bạn đã nối trước đó hãy đợi người tiếp theo")
+                        success = False
+                except Exception as e:
+                    data[str(message.guild.id)]['noitu']['pre_word'] = str(message.content.lower()).split(' ')[1]
+                    data[str(message.guild.id)]['noitu']['pre_player'] = str(message.author.id)
                     save_member_data(data)
-                    await message.add_reaction("✅")
+                    await message.add_reaction("❎")
+                    print(e)
+                else:
+                    if success == True:
+                        data[str(message.guild.id)]['noitu']['word'].append(str(message.content.lower()))
+                        save_member_data(data)
+                        await message.add_reaction("✅")
             else:
-                await message.channel.send(f'Chỉ được nối từ có 2 tiếng.')  
+                await message.channel.send(f'Chỉ được nối từ có 2 chữ')
     await bot.process_commands(message)
 @bot.group(invoke_without_command=True)
 async def help(ctx, arg = None):
@@ -75,7 +92,7 @@ async def help(ctx, arg = None):
     if arg == None:
         em = discord.Embed(title = "ℹ️help", description = "sử dụng /help để biết các lệnh có thể sử dụng trên bot và /help <command> để biết cách sử dụng")
         em.add_field(name = "**✅other command**", value = "xsmb, covid19, weather, youtube_search, translate, truyentranh, wiki, news, google_search, google_search, videofb")
-        em.add_field(name = "**🎮game command**", value = "dovui, play_taixiu, keobuabao, vuatiengviet, dhbc(đuổi hình bắt chữ), noitu, slot")
+        em.add_field(name = "**🎮game command**", value = "dovui, play_taixiu, keobuabao, vuatiengviet, dhbc(đuổi hình bắt chữ), slot")
         em.add_field(name = "**🏵️roleplay command**", value = "balance, bank, work, daily, rob")
         em.add_field(name = "**⚙️system command bot**", value = "help, offbot, ping, callad, sendnoti, setprefix")
         em.add_field(name = "**🔫fun command**", value = "thinh, mark, tiki, taoanhdep, shopmaihuong, caunoihay, thayboi, banner1")
@@ -119,10 +136,6 @@ async def help(ctx, arg = None):
     elif arg == 'news':
         em = discord.Embed(title = "news", description = "xem tin mới mỗi ngày trên vnexpress")
         em.add_field(name = "**cách dùng**", value = f"{get_prefix()[str(ctx.message.guild.id)]['prefix']}news")
-        await ctx.send(embed = em)
-    elif arg == 'noitu':
-        em = discord.Embed(title = "noitu", description = "game nối từ cùng bot")
-        em.add_field(name = "**cách dùng**", value = f"{get_prefix()[str(ctx.message.guild.id)]['prefix']}noitu")
         await ctx.send(embed = em)
     elif arg == 'ping':
         em = discord.Embed(title = "ping", description = "pong!")
@@ -731,20 +744,6 @@ async def dhbc(ctx):
     except Exception as e:
         print(e)
         await ctx.send('hiện tại lệnh bạn đang sử dụng đã gặp lỗi, hãy thử lại sau. xin lỗi vì sự cố này')
-@bot.command()
-async def noitu(ctx, arg = None):
-    data = await get_bank_data()
-    if arg == None:
-        await ctx.send(f'game nối từ tiếng việt\n{data[str(ctx.message.guild.id)]["prefix"]}noitu [start/reset]\n')
-    elif arg == 'reset':
-        pass
-    elif arg == 'start':
-        data[str(ctx.message.guild.id)]['noitu'] = {}
-        data[str(ctx.message.guild.id)]['noitu']['word'] = []
-        data[str(ctx.message.guild.id)]['noitu']['channel'] = str(ctx.message.channel.id)
-        await save_member_data(data)
-        await ctx.send(f"đã bắt đầu trò chơi hãy bắt đầu bằng một từ bất kì")
-@bot.command()
 async def taoanhdep(ctx):
     send = await ctx.send('reply tin nhắn này và nhập để tạo ảnh theo mẫu sau:\n<id nhân vật> | <chữ nền> | <chữ kí>')
     def check(m):
@@ -761,6 +760,38 @@ async def taoanhdep(ctx):
     file.write(get_taoanhdep.content)
     file.close()
     await ctx.send('ảnh của bạn đây:>', file = discord.File('taoanhdep.png'))
+@bot.command()
+async def noitu(ctx, arg = None):
+    data = await get_bank_data()
+    prefix = data[str(ctx.message.guild.id)]['prefix']
+    if arg == None:
+        await ctx.send(f"sử dụng: {prefix} <bot/channel>\nsử dụng: {prefix}noitu bot (chơi nối từ với máy) và {prefix}noitu channel (lập kênh của ng dùng lệnh làm kênh chơi nối từ)")
+    elif arg == 'bot':
+        await ctx.send('đã bắt đầu, hãy mở đầu trò chơi với một từ đầu tiên. Nhắn quit để dừng chơi')
+        while True:
+            def check(m):
+                return m.author.id == ctx.author.id
+            message = await bot.wait_for('message', check=check)
+            url_noitu = 'https://api.phamvandien.xyz/game/linkword?word='
+            full_url_noitu = url_noitu + str(message.content).lower()
+            get_noitu = requests.get(full_url_noitu)
+            data_noitu = get_noitu.text
+            json_noitu = json.loads(data_noitu)
+            word_noitu = json_noitu['data']
+            if word_noitu == False:
+                await ctx.send('bạn thắng rồi:((')
+                break
+            if message.content == "quit":
+                await ctx.send('đã dừng trò chơi')
+                break
+            else:
+                await ctx.send(word_noitu)
+    elif arg == 'channel':
+        data[str(ctx.message.guild.id)]['noitu'] = {}
+        data[str(ctx.message.guild.id)]['noitu']['word'] = []
+        data[str(ctx.message.guild.id)]['noitu']['channel'] = str(ctx.message.channel.id)
+        await save_member_data(data)
+        await ctx.send(f"đã bắt đầu trò chơi hãy bắt đầu bằng một từ bất kì")
 @bot.command()
 async def translate(ctx, *, arg = None):
     if arg:
@@ -932,75 +963,32 @@ async def news(ctx):
 @bot.command()
 async def dovui(ctx):
     try:
-        get = requests.get('https://www.nguyenmanh.name.vn/api/dovui2?apikey=KCL98tNB')
+        get = requests.get('https://api.phamvandien.xyz/game/dovui')
         data_txt = get.text
         data_json = json.loads(data_txt)
-        question = data_json['result']['question']
-        option = data_json['result']['option']
-        result = data_json['result']['correct']
-        if len(option) == 3:
-            option1 = data_json['result']['option'][0]
-            option2 = data_json['result']['option'][1]
-            option3 = data_json['result']['option'][2]
-            send = await ctx.send(f'{question}\n1. {option1}\n2. {option2}\n3. {option3}\nReply tin nhắn này và trả lời theo số thứ tự các đáp')
-            def check(m):
-                return m.author.id == ctx.author.id and m.channel == ctx.channel and m.reference is not None and m.reference.message_id == send.id
-            message = await bot.wait_for('message', check=check)
-            if int(message.content.lower()) == result:
-                if result == 1:
-                    result = option1
-                    await ctx.send(f'bạn đã trả lời đúng, đáp án là {result}')
-                elif result == 2:
-                    result = option2
-                    await ctx.send(f'bạn đã trả lời đúng, đáp án là {result}')
-                elif result == 3:
-                    result = option3
-                    await ctx.send(f'bạn đã trả lời đúng, đáp án là {result}')
-            elif int(message.content.lower()) != result:
-                if result == 1:
-                    result = option1
-                    await ctx.send(f'bạn đã trả lời sai rồi:(, đáp án đúng là {result}')
-                elif result == 2:
-                    result = option2
-                    await ctx.send(f'bạn đã trả lời sai rồi:(, đáp án đúng là {result}')
-                elif result == 3:
-                    result = option3
-                    await ctx.send(f'bạn đã trả lời sai rồi:(, đáp án đúng là {result}')
-        elif len(option) == 4:
-            option1 = data_json['result']['option'][0]
-            option2 = data_json['result']['option'][1]
-            option3 = data_json['result']['option'][2]
-            option4 = data_json['result']['option'][3]
-            send = await ctx.send(f'{question}\n1. {option1}\n2. {option2}\n3. {option3}\n4. {option4}\nReply tin nhắn này và trả lời theo số thứ tự các đáp')
-            def check(m):
-                return m.author.id == ctx.author.id and m.channel == ctx.channel and m.reference is not None and m.reference.message_id == send.id
-            message = await bot.wait_for('message', check=check)
-            if int(message.content.lower()) == result:
-                if result == 1:
-                    result = option1
-                    await ctx.send(f'bạn đã trả lời đúng, đáp án là {result}')
-                elif result == 2:
-                    result = option2
-                    await ctx.send(f'bạn đã trả lời đúng, đáp án là {result}')
-                elif result == 3:
-                    result = option3
-                    await ctx.send(f'bạn đã trả lời đúng, đáp án là {result}')
-                elif result == 4:
-                    result = option4
-                    await ctx.send(f'bạn đã trả lời đúng, đáp án là {result}')
-            elif int(message.content.lower()) != result:
-                if result == 1:
-                    result = option1
-                    await ctx.send(f'bạn đã trả lời sai rồi:(, đáp án đúng là {result}')
-                elif result == 2:
-                    result = option2
-                    await ctx.send(f'bạn đã trả lời sai rồi:(, đáp án đúng là {result}')
-                elif result == 3:
-                    result = option3
-                    await ctx.send(f'bạn đã trả lời sai rồi:(, đáp án đúng là {result}')
-                elif result == 4:
-                    result = option4
-                    await ctx.send(f'bạn đã trả lời sai rồi:(, đáp án đúng là {result}')
+        data = {}
+        question = data_json['data']['question']
+        option = data_json['data']['option']
+        correct = data_json['data']['correct'] 
+        msg = f'đây là câu hỏi của bạn: {question}'
+        stt = 1
+        for i in option:
+            msg += f'\n{stt}.{i}'
+            data[str(stt)] = i
+            stt += 1
+        msg += '\nreply tin nhắn theo số thứ tự các đáp án để trả lời'
+        send = await ctx.send(msg)
+        def check(m):
+            return m.author.id == ctx.author.id and m.channel == ctx.channel and m.reference is not None and m.reference.message_id == send.id
+        message = await bot.wait_for('message', check=check)
+        try:
+            if data[str(message.content)] == correct:
+                await ctx.send(f'bạn đã trả lời đúng, đáp án là {correct}')
+            else:
+                await ctx.send(f'sai rồi, đáp án là {correct}')
+        except Exception as e:
+            print(e)
+            await ctx.send(f'chỉ được trả lời theo số thứ tự các đáp án')
     except Exception as e:
         print(e)
         await ctx.send(f"lệnh bạn đang sử dụng đã xảy ra lỗi, hãy báo cáo về admin bằng lệnh {get_prefix()[str(ctx.message.guild.id)]['prefix']}callad, hoặc câu trả lời của bạn không phải là một con số")
@@ -1358,9 +1346,16 @@ async def mail10p(ctx, arg = None):
         print(e)
         await ctx.send(f"đã xảy ra lỗi: {e}\nVui lòng thử lại sau")
 @bot.command()
-async def test(ctx):
-    var = await ctx.send('message')
-    await var.edit(content="message edited")
+async def phongvan(ctx, member: discord.User=None):
+    try:
+        
+        
+        get_av1 = requests.get(member.avatar_url)
+        file = open('avatar.png', 'wb')
+        file.write(get_av1.content)
+        await ctx.send('hi', file = discord.File('avatar.png'))
+    except Exception as e:
+        print(e)
 #Functions
 async def open_account(user):
     users = await get_bank_data()
