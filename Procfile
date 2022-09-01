@@ -1,1 +1,1 @@
-worker: setup_bot.py
+worker: python setup_bot.py
