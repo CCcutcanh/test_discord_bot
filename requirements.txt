@@ -4,7 +4,5 @@ requests
 pymailtm
 youtube-search
 wikipedia
-datetime
-time
 urllib
 bs4
