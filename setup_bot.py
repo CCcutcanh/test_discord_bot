@@ -20,12 +20,12 @@ import urllib.request
 from discord.utils import find
 from bs4 import BeautifulSoup
 def command_prefix(bot, message):
-    with open(r"C:\codde\discord_bot\data.json", 'r') as f:
+    with open(r"data.json", 'r') as f:
         users = json.load(f)
     prefix = users[str(message.guild.id)]['prefix']
     return commands.when_mentioned_or(*prefix)(bot, message)
 def get_prefix():
-    with open(r"C:\codde\discord_bot\data.json", 'r') as f:
+    with open(r"data.json", 'r') as f:
         prefix = json.load(f)
     return prefix
 intents = discord.Intents.default()
@@ -37,7 +37,7 @@ async def on_guild_join(guild):
     users = get_prefix()
     users[str(guild.id)] = {}
     users[str(guild.id)]['prefix'] = '?'
-    with open(r"C:\codde\discord_bot\data.json", 'w') as f:
+    with open(r"data.json", 'w') as f:
         json.dump(users, f)
 @bot.event
 async def on_ready():
@@ -1039,7 +1039,7 @@ async def setprefix(ctx, arg = None):
             await ctx.send('nhập prefix cần dổi')
         else:
             users[str(ctx.message.guild.id)]['prefix'] = str(arg)
-            with open(r"C:\codde\discord_bot\data.json", 'w') as f:
+            with open(r"data.json", 'w') as f:
                 json.dump(users, f)
             await ctx.send(f'đã thay prefix của sever thành {arg}')
     except Exception as e:
@@ -1113,11 +1113,11 @@ async def baicao(ctx, arg = None, arg2 = None):
         def natural_keys(text):
             return [ atoi(c) for c in re.split(r'(\d)', text) ]
         def read():
-            with open(r"C:\codde\discord_bot\data.json", 'r') as f:
+            with open(r"data.json", 'r') as f:
                 users = json.load(f)
                 return users
         def save(data):
-            with open(r"C:\codde\discord_bot\data.json", 'w') as f:
+            with open(r"data.json", 'w') as f:
                 json.dump(data, f)
         await open_account(ctx.message.author.id)
         money_data = await get_bank_data()
@@ -1373,7 +1373,7 @@ async def open_account(user):
 
 
 async def get_bank_data():
-    with open("test.json", 'r') as f:
+    with open("data.json", 'r') as f:
         users = json.load(f)
     return users
 async def update(user, change, mode):
@@ -1408,7 +1408,7 @@ async def update(user, change, mode):
     else:
         print('error')
 def save_member_data(data):
-    with open("test.json", 'w') as f:
+    with open("data.json", 'w') as f:
         json.dump(data, f)
-bot.run('')
+bot.run(token)
 #credit: Duc Anh
