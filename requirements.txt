@@ -1,0 +1,13 @@
+asyncio
+discord.py
+json
+requests
+pymailtm
+youtube-search
+random
+os
+wikipedia
+datetime
+time
+urllib
+bs4
