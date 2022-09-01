@@ -28,7 +28,7 @@ def get_prefix():
     with open(r"data.json", 'r') as f:
         prefix = json.load(f)
     return prefix
-intents = discord.Intents.default()
+intents = discord.Intents.all()
 intents.members = True
 bot = commands.Bot(command_prefix='?', intents = intents)
 bot.remove_command("help")
