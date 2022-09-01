@@ -4,5 +4,4 @@ requests
 pymailtm
 youtube-search
 wikipedia
-urllib
 bs4
