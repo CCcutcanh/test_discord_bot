@@ -1,4 +1,4 @@
-@commands.command()
+@bot.command()
 async def dhbc(ctx):
     api = ['https://api.phamvandien.xyz/game/dhbcv1', 'https://www.nguyenmanh.name.vn/api/dhbc1?apikey=KCL98tNB', 'https://docs-api.nguyenhaidang.ml/game/dhbc']
     get = random.choice(api)
