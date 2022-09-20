@@ -45,7 +45,7 @@ async def dhbc(ctx):
         message = await bot.wait_for(event='message', check = check, timeout=45)
         if str(message.content).lower() == "gợi ý":
             await open_account(ctx.message.author.id)
-            data = await main.get_bank_data()
+            data = await get_bank_data()
             if data[str(ctx.message.author.id)]['Wallet'] < 50:
                 await ctx.send('bạn không đủ 50$ trong ví để xem gợi ý')
                 message = await bot.wait_for(event='message', check = check, timeout=45)
@@ -76,7 +76,7 @@ async def dhbc(ctx):
             return m.author == ctx.author and m.channel == ctx.channel and m.reference is not None and m.reference.message_id == send.id
         message = await bot.wait_for(event='message', check = check, timeout=45)
         if str(message.content).lower() == "gợi ý":
-            await main.open_account(ctx.message.author.id)
+            await open_account(ctx.message.author.id)
             data = await get_bank_data()
             if data[str(ctx.message.author.id)]['Wallet'] < 50:
                 await ctx.send('bạn không đủ 50$ trong ví để xem gợi ý')
