@@ -30,6 +30,7 @@ async def noitu(ctx, arg = None):
         data[str(ctx.message.guild.id)]['noitu']['channel'] = str(ctx.message.channel.id)
         await save_member_data(data)
         await ctx.send(f"đã bắt đầu trò chơi hãy bắt đầu bằng một từ bất kì")
+#xử lí tin nhắn trong kênh bật lệnh noitu
 @bot.event
 async def on_message(message):
     data = await get_bank_data()
@@ -65,3 +66,16 @@ async def on_message(message):
             else:
                 await message.channel.send(f'Chỉ được nối từ có 2 chữ')
     await bot.process_commands(message)
+#load từ điển Tiếng Việt
+data["vn_dict"] = []
+save_member_data(data)
+try:
+    for i in r:
+        try:
+            if len(json.loads(i)['text'].split(" ")) == 2:
+                data["vn_dict"].append(str(json.loads(i)['text']))
+                save_member_data(data)
+        except:
+            continue
+except Exception as e:
+    print(e)
