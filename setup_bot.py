@@ -46,19 +46,9 @@ async def on_ready():
 async def on_message(message):
     data = await get_bank_data()
     if 'noitu' in data[str(message.guild.id)]:
-        word = []
-        success = ''
+        success = True
         if str(message.channel.id) == data[str(message.guild.id)]['noitu']['channel'] and str(message.author.id) != str(bot.user.id):
             r = requests.get('https://raw.githubusercontent.com/undertheseanlp/dictionary/master/dictionaries/hongocduc/words.txt').text.split('\n')
-            try:
-                for i in r:
-                    try:
-                        if len(json.loads(i)['text'].split(" ")) == 2:
-                            word.append(str(json.loads(i)['text']))
-                    except:
-                        continue
-            except Exception as e:
-                print(e)
             if len(str(message.content.lower()).split(' ')) == 2 and str(message.author.id) != str(bot.user.id):
                 if message.content.lower() not in word:
                     await message.add_reaction("❎")
@@ -76,8 +66,9 @@ async def on_message(message):
                     data[str(message.guild.id)]['noitu']['pre_word'] = str(message.content.lower()).split(' ')[1]
                     data[str(message.guild.id)]['noitu']['pre_player'] = str(message.author.id)
                     save_member_data(data)
-                    await message.add_reaction("❎")
+                    await message.add_reaction("✅")
                     print(e)
+                    return
                 else:
                     if success == True:
                         data[str(message.guild.id)]['noitu']['word'].append(str(message.content.lower()))
