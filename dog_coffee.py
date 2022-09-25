@@ -5,7 +5,7 @@ import aiofiles
 import aiohttp
 import asyncio
 @bot.command()
-async def dog_coffee(self, ctx, member: discord.User = None):
+async def dog_coffee(ctx, member: discord.User = None):
     try:
         if member == None:
             image = await easy_pil.load_image_async(ctx.author.display_avatar.url)
